@@ -26,7 +26,7 @@ export async function saveLogs(logs: Record<string, DailyLog>): Promise<void> {
 }
 
 export async function deleteAllData(): Promise<void> {
-  await AsyncStorage.removeMany([KEYS.profile, KEYS.logs]);
+  await AsyncStorage.multiRemove([KEYS.profile, KEYS.logs]);
 }
 
 export async function exportAllData(): Promise<string> {
