@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, Alert, Switch } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { useCadence } from '../state/CadenceContext';
+import { syncConfigured } from '../lib/supabase';
 import { color, font } from '../theme/tokens';
 
-export function SettingsScreen({ onClose }: { onClose: () => void }) {
+export function SettingsScreen({ onClose, onOpenFeedback }: { onClose: () => void; onOpenFeedback: () => void }) {
   const { profile, updateProfile, exportData, deleteAllData } = useCadence();
   const [cycleLength, setCycleLength] = useState(profile.typicalCycleLength);
   const [periodLength, setPeriodLength] = useState(profile.typicalPeriodLength);
@@ -35,9 +36,12 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
   }
 
   function onDelete() {
+    const remoteNote = profile.shareDataConsent
+      ? ' This also deletes your synced copy from the research database.'
+      : '';
     Alert.alert(
       'Delete all data',
-      'This permanently deletes every logged period, symptom and energy entry on this device. This cannot be undone.',
+      `This permanently deletes every logged period, symptom and energy entry on this device.${remoteNote} This cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Delete everything', style: 'destructive', onPress: () => deleteAllData() },
@@ -54,6 +58,35 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
         </Pressable>
       </View>
 
+      {syncConfigured && (
+        <View style={{ gap: 10 }}>
+          <Text style={styles.h6}>Feedback</Text>
+          <Text style={styles.helper}>Tell us how helpful Cadence actually is — a minute, no strings attached.</Text>
+          <Pressable style={styles.rowBtn} onPress={onOpenFeedback}>
+            <Text style={styles.rowBtnText}>Give feedback</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {syncConfigured && (
+        <View style={{ gap: 10 }}>
+          <Text style={styles.h6}>Data sharing</Text>
+          <View style={styles.consentRow}>
+            <Text style={[styles.helper, { flex: 1 }]}>
+              Sync my logged cycle, symptom and energy data to a private research database, so we can see whether
+              Cadence is actually helping. You can turn this off anytime — it only stops future syncing; use
+              "Delete all data" below to also remove what's already been sent.
+            </Text>
+            <Switch
+              value={!!profile.shareDataConsent}
+              onValueChange={(v) => updateProfile({ shareDataConsent: v })}
+              trackColor={{ false: color.neutral300, true: color.accent2_500 }}
+              thumbColor={color.neutral100}
+            />
+          </View>
+        </View>
+      )}
+
       <View style={{ gap: 12 }}>
         <Text style={styles.h6}>Cycle estimates</Text>
         <Text style={styles.helper}>Used until Cadence has enough logged cycles to compute these for you.</Text>
@@ -67,8 +100,9 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
       <View style={{ gap: 10 }}>
         <Text style={styles.h6}>Your data</Text>
         <Text style={styles.helper}>
-          Cadence stores everything only on this device. Nothing is uploaded, and there are no analytics or ad SDKs
-          in this app.
+          {profile.shareDataConsent
+            ? 'Data sharing is on above, so your cycle data also lives in the research database. There are no analytics or ad SDKs in this app — sharing is the only way anything leaves your phone.'
+            : 'Cadence stores everything only on this device. Nothing is uploaded, and there are no analytics or ad SDKs in this app.'}
         </Text>
         <Pressable style={styles.rowBtn} onPress={onExport} disabled={busy}>
           <Text style={styles.rowBtnText}>{busy ? 'Preparing export…' : 'Export my data (JSON)'}</Text>
@@ -110,6 +144,7 @@ const styles = StyleSheet.create({
   close: { fontSize: 14, color: color.accent },
   h6: { fontFamily: font.bodySemiBold, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', color: color.neutral700 },
   helper: { fontSize: 12, lineHeight: 17, color: color.neutral600 },
+  consentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
   label: { fontSize: 12, color: color.neutral700 },
   stepperRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   stepperBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: color.surface, alignItems: 'center', justifyContent: 'center' },

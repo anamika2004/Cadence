@@ -23,6 +23,9 @@ export type CycleProfile = {
   // enough real cycles are logged to compute these directly.
   typicalCycleLength: number;
   typicalPeriodLength: number;
+  // Opt-in, off by default: whether cycle data may sync to the research
+  // database (see src/lib/sync.ts). Never affects local storage either way.
+  shareDataConsent?: boolean;
 };
 
 const OVULATORY_LEN = 4;

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, Platform } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, Platform, Switch } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useCadence } from '../state/CadenceContext';
+import { syncConfigured } from '../lib/supabase';
 import { color, font } from '../theme/tokens';
 import { addDays, formatMonthDay, todayISO } from '../lib/date';
 
@@ -12,6 +13,7 @@ export function OnboardingScreen() {
   const [periodLength, setPeriodLength] = useState(5);
   const [previousDates, setPreviousDates] = useState<string[]>([]);
   const [showPicker, setShowPicker] = useState<'last' | number | null>(null);
+  const [shareData, setShareData] = useState(false);
 
   function addPrevious() {
     const base = previousDates.length > 0 ? previousDates[previousDates.length - 1] : lastPeriod;
@@ -24,7 +26,12 @@ export function OnboardingScreen() {
 
   function onSave() {
     const periodStarts = Array.from(new Set([lastPeriod, ...previousDates])).sort();
-    completeOnboarding({ periodStarts, typicalCycleLength: cycleLength, typicalPeriodLength: periodLength });
+    completeOnboarding({
+      periodStarts,
+      typicalCycleLength: cycleLength,
+      typicalPeriodLength: periodLength,
+      shareDataConsent: syncConfigured && shareData,
+    });
   }
 
   return (
@@ -32,7 +39,7 @@ export function OnboardingScreen() {
       <Text style={styles.title}>Let's set up Cadence</Text>
       <Text style={styles.subtitle}>
         A few starting numbers so Cadence can estimate your phase and next period. Everything is stored only on this
-        device — nothing is sent anywhere.
+        device by default — the option below is the only way any of it leaves your phone.
       </Text>
 
       <View style={styles.field}>
@@ -94,6 +101,25 @@ export function OnboardingScreen() {
         </Pressable>
       </View>
 
+      {syncConfigured && (
+        <View style={styles.consentCard}>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={styles.consentTitle}>Help improve Cadence</Text>
+            <Text style={styles.consentBody}>
+              Optionally sync your logged cycle, symptom and energy data to a private research database so we can
+              see whether Cadence is actually helping. Off by default; you can turn it on or off anytime in
+              Settings, and delete everything synced whenever you want.
+            </Text>
+          </View>
+          <Switch
+            value={shareData}
+            onValueChange={setShareData}
+            trackColor={{ false: color.neutral300, true: color.accent2_500 }}
+            thumbColor={color.neutral100}
+          />
+        </View>
+      )}
+
       <Pressable style={styles.cta} onPress={onSave}>
         <Text style={styles.ctaText}>Get started</Text>
       </Pressable>
@@ -140,6 +166,16 @@ const styles = StyleSheet.create({
   removeBtnText: { fontSize: 12, color: color.accent700 },
   addBtn: { alignSelf: 'flex-start', paddingVertical: 6 },
   addBtnText: { fontSize: 13, color: color.accent, fontFamily: font.bodySemiBold },
+  consentCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+    backgroundColor: color.accent2_100,
+    borderRadius: 20,
+    padding: 14,
+  },
+  consentTitle: { fontFamily: font.heading, fontSize: 15, color: color.text },
+  consentBody: { fontSize: 12, lineHeight: 17, color: color.accent2_800 },
   cta: { backgroundColor: color.accent, borderRadius: 999, paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   ctaText: { fontFamily: font.heading, fontSize: 15, color: color.bg },
 });

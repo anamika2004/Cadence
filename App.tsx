@@ -7,6 +7,7 @@ import { Figtree_400Regular, Figtree_600SemiBold, Figtree_700Bold } from '@expo-
 import { CadenceProvider, useCadence } from './src/state/CadenceContext';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
+import { FeedbackScreen } from './src/screens/FeedbackScreen';
 import { TodayScreen } from './src/screens/TodayScreen';
 import { CycleScreen } from './src/screens/CycleScreen';
 import { MoveScreen } from './src/screens/MoveScreen';
@@ -39,12 +40,17 @@ function Root() {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<TabId>('today');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   if (!ready) return <View style={styles.blank} />;
   if (!onboarded) return <OnboardingScreen />;
 
+  if (feedbackOpen) {
+    return <FeedbackScreen onClose={() => setFeedbackOpen(false)} />;
+  }
+
   if (settingsOpen) {
-    return <SettingsScreen onClose={() => setSettingsOpen(false)} />;
+    return <SettingsScreen onClose={() => setSettingsOpen(false)} onOpenFeedback={() => setFeedbackOpen(true)} />;
   }
 
   return (

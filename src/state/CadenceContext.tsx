@@ -3,6 +3,7 @@ import { CycleProfile, DailyLog } from '../lib/cycle';
 import * as storage from '../lib/storage';
 import { todayISO } from '../lib/date';
 import { FlowLevel } from '../lib/content';
+import { syncProfile, syncLog, syncAll, deleteRemoteData } from '../lib/sync';
 
 type CadenceContextValue = {
   ready: boolean;
@@ -37,21 +38,33 @@ export function CadenceProvider({ children }: { children: React.ReactNode }) {
       setProfile(p);
       setLogs(l);
       setReady(true);
+      // Catch up on anything missed while offline, for testers who already
+      // opted in on a previous launch.
+      if (p?.shareDataConsent) syncAll(p, l);
     })();
   }, []);
 
   const completeOnboarding = useCallback(async (p: CycleProfile) => {
     await storage.saveProfile(p);
     setProfile(p);
+    if (p.shareDataConsent) syncProfile(p);
   }, []);
 
   const updateProfile = useCallback(
     async (patch: Partial<CycleProfile>) => {
-      const next = { ...(profile ?? EMPTY_PROFILE), ...patch };
+      const current = profile ?? EMPTY_PROFILE;
+      const next = { ...current, ...patch };
       await storage.saveProfile(next);
       setProfile(next);
+      if (next.shareDataConsent && !current.shareDataConsent) {
+        // Consent just turned on — push everything logged so far, not
+        // just the profile.
+        syncAll(next, logs);
+      } else if (next.shareDataConsent) {
+        syncProfile(next);
+      }
     },
-    [profile]
+    [profile, logs]
   );
 
   const addPeriodStart = useCallback(
@@ -61,6 +74,7 @@ export function CadenceProvider({ children }: { children: React.ReactNode }) {
       const next = { ...current, periodStarts: [...current.periodStarts, date].sort() };
       await storage.saveProfile(next);
       setProfile(next);
+      if (next.shareDataConsent) syncProfile(next);
     },
     [profile]
   );
@@ -71,6 +85,7 @@ export function CadenceProvider({ children }: { children: React.ReactNode }) {
       const next = { ...current, periodStarts: current.periodStarts.filter((d) => d !== date) };
       await storage.saveProfile(next);
       setProfile(next);
+      if (next.shareDataConsent) syncProfile(next);
     },
     [profile]
   );
@@ -81,10 +96,11 @@ export function CadenceProvider({ children }: { children: React.ReactNode }) {
         const existing = prev[date] ?? { date, symptoms: [] };
         const next = { ...prev, [date]: { ...existing, ...patch, loggedAt: new Date().toISOString() } };
         storage.saveLogs(next);
+        if (profile?.shareDataConsent) syncLog(next[date], true);
         return next;
       });
     },
-    []
+    [profile]
   );
 
   const getLog = useCallback((date: string): DailyLog => logs[date] ?? { date, symptoms: [] }, [logs]);
@@ -125,10 +141,11 @@ export function CadenceProvider({ children }: { children: React.ReactNode }) {
   );
 
   const deleteAllData = useCallback(async () => {
+    if (profile?.shareDataConsent) await deleteRemoteData();
     await storage.deleteAllData();
     setProfile(null);
     setLogs({});
-  }, []);
+  }, [profile]);
 
   const exportData = useCallback(() => storage.exportAllData(), []);
 
