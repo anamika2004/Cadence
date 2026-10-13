@@ -10,6 +10,7 @@ import {
   phaseKeyForDay,
   predict,
   computePatternInsight,
+  computePhaseEvidence,
 } from '../lib/cycle';
 import { PHASES } from '../theme/tokens';
 
@@ -31,6 +32,7 @@ export function useCycleData() {
 
     const prediction = profile.periodStarts.length > 0 ? predict(profile, logList, today) : null;
     const pattern = computePatternInsight(profile, logList);
+    const phaseEvidence = computePhaseEvidence(phaseKey, boundaries, profile, logList);
     const cyclesLogged = Math.max(0, profile.periodStarts.length - 1);
     const energyAvg = averageEnergy(logList);
 
@@ -46,6 +48,7 @@ export function useCycleData() {
       phaseDayWithinPhase,
       prediction,
       pattern,
+      phaseEvidence,
       cyclesLogged,
       energyAvg,
       todayLog: logs[today] ?? { date: today, symptoms: [] },

@@ -3,7 +3,8 @@ import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { useCadence } from '../state/CadenceContext';
 import { useCycleData } from '../state/useCycleData';
 import { phaseKeyForDay } from '../lib/cycle';
-import { MOVE } from '../lib/content';
+import { MOVE, Venue, blockText } from '../lib/content';
+import { movementEvidenceLine } from '../lib/evidenceCopy';
 import { color, font } from '../theme/tokens';
 import { addDays, weekdayIndex } from '../lib/date';
 
@@ -11,13 +12,16 @@ const SWAP_LABELS = ['Lighter option', 'Heavier option', 'Reset'];
 const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export function MoveScreen() {
-  const { today, day, cycleLength, boundaries, phaseKey } = useCycleData();
+  const { today, day, cycleLength, boundaries, phaseKey, phaseEvidence } = useCycleData();
   const { getLog, setSessionLogged } = useCadence();
   const [swap, setSwap] = useState(0);
+  const [venue, setVenue] = useState<Venue>('gym');
 
+  const isToday = swap === 0;
   const swappedKey = swap === 1 ? 'menstrual' : swap === 2 ? 'ovulatory' : phaseKey;
   const move = MOVE[swappedKey];
   const log = getLog(today);
+  const evidenceLine = isToday ? movementEvidenceLine(phaseEvidence) : null;
 
   const heights: Record<string, number> = { menstrual: 30, follicular: 64, ovulatory: 72, luteal: 44 };
   const week = Array.from({ length: 7 }, (_, i) => {
@@ -35,17 +39,23 @@ export function MoveScreen() {
         <Text style={styles.meta}>{move.meta}</Text>
       </View>
 
+      <View style={styles.venueRow}>
+        {(['gym', 'home'] as Venue[]).map((v) => {
+          const on = venue === v;
+          return (
+            <Pressable key={v} onPress={() => setVenue(v)} style={[styles.venuePill, on && styles.venuePillOn]}>
+              <Text style={[styles.venuePillText, on && styles.venuePillTextOn]}>{v === 'gym' ? 'At the gym' : 'At home'}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       <View style={styles.whyCard}>
-        <Text style={[styles.h6, { color: color.accent2_700 }]}>Why this today</Text>
-        <Text style={styles.whyText}>{move.why}</Text>
-        {move.evidence ? (
+        <Text style={[styles.h6, { color: color.accent2_700 }]}>{isToday ? 'Why this today' : 'Why this works'}</Text>
+        <Text style={styles.whyText}>{move.rationale}</Text>
+        {evidenceLine ? (
           <View style={styles.evidenceList}>
-            {move.evidence.map((e) => (
-              <View key={e.label} style={styles.evidenceRow}>
-                <Text style={styles.evidenceLabel}>{e.label}</Text>
-                <Text style={styles.evidenceValue}>{e.value}</Text>
-              </View>
-            ))}
+            <Text style={styles.evidenceLine}>{evidenceLine}</Text>
           </View>
         ) : null}
       </View>
@@ -56,7 +66,7 @@ export function MoveScreen() {
           {move.blocks.map((b) => (
             <View key={b.time} style={styles.blockRow}>
               <Text style={styles.blockTime}>{b.time}</Text>
-              <Text style={styles.blockText}>{b.text}</Text>
+              <Text style={styles.blockText}>{blockText(b, venue)}</Text>
             </View>
           ))}
         </View>
@@ -106,12 +116,15 @@ const styles = StyleSheet.create({
   h6: { fontFamily: font.bodySemiBold, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', color: color.neutral700 },
   h3: { fontFamily: font.heading, fontSize: 24, color: color.text },
   meta: { fontSize: 13, color: color.neutral700 },
+  venueRow: { flexDirection: 'row', gap: 8 },
+  venuePill: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 999, borderWidth: 1, borderColor: color.divider },
+  venuePillOn: { backgroundColor: color.accent2_600, borderColor: color.accent2_600 },
+  venuePillText: { fontSize: 13, fontFamily: font.bodySemiBold, color: color.text },
+  venuePillTextOn: { color: color.neutral100 },
   whyCard: { backgroundColor: color.accent2_100, borderRadius: 20, padding: 14, gap: 12 },
   whyText: { fontSize: 13, lineHeight: 20, color: color.text },
   evidenceList: { gap: 8, borderTopWidth: 1, borderTopColor: 'rgba(32,30,29,0.1)', paddingTop: 10 },
-  evidenceRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
-  evidenceLabel: { fontSize: 12, color: color.accent2_800 },
-  evidenceValue: { fontSize: 12, color: color.text },
+  evidenceLine: { fontSize: 12, lineHeight: 17, color: color.accent2_800 },
   blockRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: color.surface, borderRadius: 999, paddingVertical: 10, paddingHorizontal: 16 },
   blockTime: { fontFamily: font.heading, fontSize: 12, width: 46, color: color.accent700 },
   blockText: { fontSize: 13, flex: 1, color: color.text },

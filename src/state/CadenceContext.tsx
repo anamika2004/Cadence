@@ -10,7 +10,7 @@ type CadenceContextValue = {
   onboarded: boolean;
   profile: CycleProfile;
   logs: Record<string, DailyLog>;
-  completeOnboarding: (profile: CycleProfile) => Promise<void>;
+  completeOnboarding: (profile: CycleProfile, seedLogs?: Record<string, DailyLog>) => Promise<void>;
   updateProfile: (patch: Partial<CycleProfile>) => Promise<void>;
   addPeriodStart: (date: string) => Promise<void>;
   removePeriodStart: (date: string) => Promise<void>;
@@ -19,6 +19,7 @@ type CadenceContextValue = {
   toggleSymptom: (date: string, symptom: string) => Promise<void>;
   setFlow: (date: string, flow: FlowLevel | undefined) => Promise<void>;
   setSessionLogged: (date: string, done: boolean) => Promise<void>;
+  toggleNutrientCheck: (date: string, name: string) => Promise<void>;
   deleteAllData: () => Promise<void>;
   exportData: () => Promise<string>;
 };
@@ -44,10 +45,16 @@ export function CadenceProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
-  const completeOnboarding = useCallback(async (p: CycleProfile) => {
+  const completeOnboarding = useCallback(async (p: CycleProfile, seedLogs?: Record<string, DailyLog>) => {
     await storage.saveProfile(p);
     setProfile(p);
-    if (p.shareDataConsent) syncProfile(p);
+    if (seedLogs && Object.keys(seedLogs).length > 0) {
+      await storage.saveLogs(seedLogs);
+      setLogs(seedLogs);
+      if (p.shareDataConsent) syncAll(p, seedLogs);
+    } else if (p.shareDataConsent) {
+      syncProfile(p);
+    }
   }, []);
 
   const updateProfile = useCallback(
@@ -123,21 +130,36 @@ export function CadenceProvider({ children }: { children: React.ReactNode }) {
   const setFlow = useCallback(
     async (date: string, flow: FlowLevel | undefined) => {
       await persistLog(date, { flow });
-      // A flow day with no flow logged the day before starts a new
-      // logged period; a flow day right after another one is a
-      // continuation of the same period.
       if (flow) {
+        // A flow day with no flow logged the day before starts a new
+        // logged period; a flow day right after another one is a
+        // continuation of the same period.
         const yesterday = addDaysLocal(date, -1);
         const isContinuation = !!logs[yesterday]?.flow;
         if (!isContinuation) await addPeriodStart(date);
+      } else if ((profile ?? EMPTY_PROFILE).periodStarts.includes(date)) {
+        // Clearing flow on what was a period's start date undoes that
+        // period start too — needed to correct a mis-logged day.
+        await removePeriodStart(date);
       }
     },
-    [persistLog, logs, addPeriodStart]
+    [persistLog, logs, profile, addPeriodStart, removePeriodStart]
   );
 
   const setSessionLogged = useCallback(
     async (date: string, done: boolean) => persistLog(date, { sessionLogged: done }),
     [persistLog]
+  );
+
+  const toggleNutrientCheck = useCallback(
+    async (date: string, name: string) => {
+      const current = getLog(date);
+      const checks = current.nutrientChecks ?? [];
+      const on = checks.includes(name);
+      const nutrientChecks = on ? checks.filter((n) => n !== name) : [...checks, name];
+      await persistLog(date, { nutrientChecks });
+    },
+    [getLog, persistLog]
   );
 
   const deleteAllData = useCallback(async () => {
@@ -164,10 +186,11 @@ export function CadenceProvider({ children }: { children: React.ReactNode }) {
       toggleSymptom,
       setFlow,
       setSessionLogged,
+      toggleNutrientCheck,
       deleteAllData,
       exportData,
     }),
-    [ready, profile, logs, completeOnboarding, updateProfile, addPeriodStart, removePeriodStart, getLog, setEnergy, toggleSymptom, setFlow, setSessionLogged, deleteAllData, exportData]
+    [ready, profile, logs, completeOnboarding, updateProfile, addPeriodStart, removePeriodStart, getLog, setEnergy, toggleSymptom, setFlow, setSessionLogged, toggleNutrientCheck, deleteAllData, exportData]
   );
 
   return <CadenceContext.Provider value={value}>{children}</CadenceContext.Provider>;

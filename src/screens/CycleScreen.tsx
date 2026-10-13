@@ -1,10 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { Card } from '../components/Card';
+import { EnergyDots } from '../components/EnergyDots';
+import { SymptomChips, SingleChips } from '../components/Chips';
 import { useCadence } from '../state/CadenceContext';
 import { useCycleData } from '../state/useCycleData';
 import { cycleDayFor, phaseKeyForDay } from '../lib/cycle';
-import { MOVE, FUEL } from '../lib/content';
+import { MOVE, FUEL, SYMPTOMS, FLOW_LEVELS } from '../lib/content';
 import { PHASES } from '../theme/tokens';
 import { color, font } from '../theme/tokens';
 import { daysInMonth, leadingBlanks, todayISO } from '../lib/date';
@@ -13,7 +15,7 @@ const WEEKDAY_INITIALS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const MONTH_NAMES_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 export function CycleScreen() {
-  const { profile, logs } = useCadence();
+  const { profile, logs, getLog, setEnergy, toggleSymptom, setFlow } = useCadence();
   const { cycleLength, boundaries, cyclesLogged, cycleLengthAvg, periodLengthAvg, energyAvg } = useCycleData();
   const today = todayISO();
   const now = new Date();
@@ -47,6 +49,8 @@ export function CycleScreen() {
   const selCycleDay = hasHistory ? cycleDayFor(selected, profile, cycleLength) : 1;
   const selPhaseKey = phaseKeyForDay(((selCycleDay - 1) % cycleLength) + 1, boundaries);
   const selLog = logs[selected];
+  const canEdit = selected <= today;
+  const editLog = getLog(selected);
   const loggedValue = selLog
     ? [selLog.flow ? `Flow: ${selLog.flow.toLowerCase()}` : null, selLog.energy ? `Energy ${selLog.energy}/5` : null, selLog.symptoms.length ? selLog.symptoms.join(', ') : null]
         .filter(Boolean)
@@ -121,6 +125,36 @@ export function CycleScreen() {
           <DetailRow label="Nutrient focus" value={hasHistory ? `${FUEL[selPhaseKey].increase[0].name} · ${FUEL[selPhaseKey].reduce[0].name.toLowerCase()}` : '—'} />
         </View>
       </Card>
+
+      {canEdit && (
+        <Card elevated style={{ gap: 10, backgroundColor: color.neutral100 }}>
+          <View style={styles.rowBetween}>
+            <Text style={styles.editTitle}>Edit log for {formatSelected(selected)}</Text>
+          </View>
+          <Text style={styles.editHint}>
+            Correct a day if it logged wrong, or fill in a day you missed — useful for irregular cycles where
+            automatic guesses can be off.
+          </Text>
+          <View style={{ gap: 10 }}>
+            <View style={styles.logRow}>
+              <Text style={styles.logLabel}>Energy</Text>
+              <EnergyDots value={editLog.energy ?? 3} onChange={(n) => setEnergy(selected, n as 1 | 2 | 3 | 4 | 5)} />
+            </View>
+            <View style={[styles.logRow, { alignItems: 'flex-start' }]}>
+              <Text style={[styles.logLabel, { paddingTop: 5 }]}>Symptoms</Text>
+              <SymptomChips options={SYMPTOMS} selected={editLog.symptoms} onToggle={(s) => toggleSymptom(selected, s)} />
+            </View>
+            <View style={[styles.logRow, { alignItems: 'flex-start' }]}>
+              <Text style={[styles.logLabel, { paddingTop: 5 }]}>Period</Text>
+              <SingleChips
+                options={FLOW_LEVELS}
+                value={editLog.flow}
+                onSelect={(v) => setFlow(selected, editLog.flow === v ? undefined : (v as any))}
+              />
+            </View>
+          </View>
+        </Card>
+      )}
 
       <View style={{ gap: 6, paddingBottom: 4 }}>
         <Text style={styles.h6}>Your averages</Text>
@@ -204,6 +238,10 @@ const styles = StyleSheet.create({
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
   detailLabel: { fontSize: 13, color: color.neutral700 },
   detailValue: { fontSize: 13, color: color.text, textAlign: 'right', flexShrink: 1 },
+  editTitle: { fontFamily: font.bodySemiBold, fontSize: 13, color: color.text },
+  editHint: { fontSize: 11, lineHeight: 16, color: color.neutral600 },
+  logRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  logLabel: { fontSize: 12, width: 64, color: color.neutral700 },
   h6: { fontFamily: font.bodySemiBold, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', color: color.neutral700 },
   statsRow: { flexDirection: 'row', gap: 8 },
   statTile: { flex: 1, backgroundColor: color.neutral100, borderRadius: 20, paddingVertical: 12, paddingHorizontal: 10, gap: 2 },

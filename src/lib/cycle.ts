@@ -13,6 +13,7 @@ export type DailyLog = {
   symptoms: string[];
   flow?: FlowLevel;
   sessionLogged?: boolean;
+  nutrientChecks?: string[]; // nutrient names checked off as "done" that day, on the Fuel screen
   loggedAt?: string; // ISO timestamp of the last edit, for the "Saved HH:MM" status line
 };
 
@@ -202,4 +203,65 @@ export function averageEnergy(logs: DailyLog[]): AverageResult {
   for (const l of logs) if (l.energy != null) vals.push(l.energy);
   if (vals.length === 0) return { value: 0, sampleSize: 0 };
   return { value: Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10, sampleSize: vals.length };
+}
+
+export type PhaseEvidence = {
+  cyclesOfData: number;
+  avgEnergy?: number;
+  topSymptom?: { name: string; cyclesWithIt: number };
+  sessionsLogged?: number;
+};
+
+// The one source of "real, computed, personal" stats shown anywhere on
+// Move/Fuel. Everything else in those screens' content is static,
+// general-phase copy — never a claim about "your" logs unless this
+// function actually found enough of them to say so honestly.
+export function computePhaseEvidence(phaseKey: PhaseKey, boundaries: PhaseBoundaries, profile: CycleProfile, logs: DailyLog[]): PhaseEvidence | null {
+  const s = sortedStarts(profile);
+  if (s.length === 0) return null;
+  const range = boundaries[phaseKey];
+
+  const byCycle = new Map<string, DailyLog[]>();
+  for (let i = 0; i < s.length; i++) {
+    const start = s[i];
+    const end = s[i + 1];
+    const cycleLogs: DailyLog[] = [];
+    for (const log of logs) {
+      if (log.date < start) continue;
+      if (end && log.date >= end) continue;
+      const day = diffDays(start, log.date) + 1;
+      if (day >= range.start && day <= range.end) cycleLogs.push(log);
+    }
+    if (cycleLogs.length > 0) byCycle.set(start, cycleLogs);
+  }
+
+  const cyclesOfData = byCycle.size;
+  if (cyclesOfData < MIN_CYCLES_FOR_PATTERN) return null;
+
+  const allLogs = [...byCycle.values()].flat();
+
+  let avgEnergy: number | undefined;
+  const cyclesWithEnergy = [...byCycle.values()].filter((cycleLogs) => cycleLogs.some((l) => l.energy != null)).length;
+  if (cyclesWithEnergy >= MIN_CYCLES_FOR_PATTERN) {
+    const vals: number[] = [];
+    for (const l of allLogs) if (l.energy != null) vals.push(l.energy);
+    avgEnergy = Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
+  }
+
+  const symptomCycleCounts = new Map<string, number>();
+  for (const cycleLogs of byCycle.values()) {
+    const seen = new Set<string>();
+    for (const log of cycleLogs) for (const sym of log.symptoms) seen.add(sym);
+    for (const sym of seen) symptomCycleCounts.set(sym, (symptomCycleCounts.get(sym) ?? 0) + 1);
+  }
+  let topSymptom: { name: string; cyclesWithIt: number } | undefined;
+  for (const [name, count] of symptomCycleCounts) {
+    if (count >= MIN_CYCLES_FOR_PATTERN && (!topSymptom || count > topSymptom.cyclesWithIt)) {
+      topSymptom = { name, cyclesWithIt: count };
+    }
+  }
+
+  const sessionsLogged = allLogs.filter((l) => l.sessionLogged).length;
+
+  return { cyclesOfData, avgEnergy, topSymptom, sessionsLogged };
 }
