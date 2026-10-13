@@ -49,7 +49,8 @@ export function CycleScreen() {
   const selCycleDay = hasHistory ? cycleDayFor(selected, profile, cycleLength) : 1;
   const selPhaseKey = phaseKeyForDay(((selCycleDay - 1) % cycleLength) + 1, boundaries);
   const selLog = logs[selected];
-  const canEdit = selected <= today;
+  const canEdit = selected < today;
+  const isSelectedToday = selected === today;
   const editLog = getLog(selected);
   const loggedValue = selLog
     ? [
@@ -169,6 +170,10 @@ export function CycleScreen() {
         </Card>
       )}
 
+      {isSelectedToday && (
+        <Text style={styles.todayNote}>Log today's energy, symptoms, period and sleep from the Today tab.</Text>
+      )}
+
       <View style={{ gap: 6, paddingBottom: 4 }}>
         <Text style={styles.h6}>Your averages</Text>
         <View style={styles.statsRow}>
@@ -253,6 +258,7 @@ const styles = StyleSheet.create({
   detailValue: { fontSize: 13, color: color.text, textAlign: 'right', flexShrink: 1 },
   editTitle: { fontFamily: font.bodySemiBold, fontSize: 13, color: color.text },
   editHint: { fontSize: 11, lineHeight: 16, color: color.neutral600 },
+  todayNote: { fontSize: 11, lineHeight: 16, color: color.neutral600, paddingHorizontal: 4 },
   logRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   logLabel: { fontSize: 12, width: 64, color: color.neutral700 },
   h6: { fontFamily: font.bodySemiBold, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', color: color.neutral700 },

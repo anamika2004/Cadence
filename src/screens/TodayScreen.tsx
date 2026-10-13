@@ -1,25 +1,22 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
-import { Card, CardKicker, CardTitle, CardBody } from '../components/Card';
+import { Card, CardKicker, CardTitle } from '../components/Card';
 import { EnergyDots } from '../components/EnergyDots';
 import { SymptomChips, SingleChips } from '../components/Chips';
 import { RingHeader } from '../components/RingHeader';
 import { useCadence } from '../state/CadenceContext';
 import { useCycleData } from '../state/useCycleData';
 import { MOVE, FUEL, SYMPTOMS, FLOW_LEVELS, SLEEP_LEVELS } from '../lib/content';
-import { movementEvidenceLine, fuelEvidenceLine } from '../lib/evidenceCopy';
 import { color, font, space } from '../theme/tokens';
 import { formatShort, formatTime } from '../lib/date';
 import { TabId } from '../components/TabBar';
 
 export function TodayScreen({ onNavigate, onOpenSettings }: { onNavigate: (t: TabId) => void; onOpenSettings: () => void }) {
-  const { today, day, cycleLength, boundaries, phaseKey, phase, phaseDayWithinPhase, prediction, pattern, phaseEvidence, cyclesLogged, todayLog } = useCycleData();
+  const { today, day, cycleLength, boundaries, phaseKey, phase, phaseDayWithinPhase, prediction, pattern, cyclesLogged, todayLog } = useCycleData();
   const { setEnergy, toggleSymptom, setFlow, setSleep } = useCadence();
 
   const move = MOVE[phaseKey];
   const fuel = FUEL[phaseKey];
-  const moveEvidence = movementEvidenceLine(phaseEvidence);
-  const fuelEvidence = fuelEvidenceLine(phaseEvidence);
 
   const periodInLabel = prediction ? `Next period in ${Math.max(0, daysUntil(today, prediction.nextPeriodDate))} days` : 'Log your first period to start';
   const confidenceLabel = prediction ? `±${prediction.confidenceDays}d` : '';
@@ -68,8 +65,7 @@ export function TodayScreen({ onNavigate, onOpenSettings }: { onNavigate: (t: Ta
               <Text style={styles.loadLabel}>LOAD</Text>
             </View>
           </View>
-          <CardBody>{move.rationale}</CardBody>
-          {moveEvidence ? <Text style={styles.evidenceLine}>{moveEvidence}</Text> : null}
+          <Text style={styles.seeMore}>See today's plan and why →</Text>
         </Card>
 
         <Card onPress={() => onNavigate('fuel')} style={{ gap: 10 }}>
@@ -87,8 +83,7 @@ export function TodayScreen({ onNavigate, onOpenSettings }: { onNavigate: (t: Ta
               </View>
             ))}
           </View>
-          <CardBody>{fuel.rationale}</CardBody>
-          {fuelEvidence ? <Text style={styles.evidenceLine}>{fuelEvidence}</Text> : null}
+          <Text style={styles.seeMore}>See full guidance →</Text>
         </Card>
 
         <Card elevated style={{ gap: 10, backgroundColor: color.neutral100 }}>
@@ -163,7 +158,7 @@ const styles = StyleSheet.create({
   logRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   logLabel: { fontSize: 12, width: 64, color: color.neutral700 },
   statusLine: { fontSize: 11, color: color.neutral600 },
-  evidenceLine: { fontSize: 11, color: color.accent2_700, fontFamily: font.bodySemiBold },
+  seeMore: { fontSize: 11, color: color.accent700, fontFamily: font.bodySemiBold },
   patternRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', paddingHorizontal: 4 },
   patternDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: color.accent2_600, marginTop: 6 },
   patternText: { flex: 1, fontSize: 12, lineHeight: 18, color: color.neutral700 },
