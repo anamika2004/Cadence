@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { CycleProfile, DailyLog } from '../lib/cycle';
 import * as storage from '../lib/storage';
 import { todayISO } from '../lib/date';
-import { FlowLevel } from '../lib/content';
+import { FlowLevel, SleepLevel } from '../lib/content';
 import { syncProfile, syncLog, syncAll, deleteRemoteData } from '../lib/sync';
 
 type CadenceContextValue = {
@@ -18,6 +18,7 @@ type CadenceContextValue = {
   setEnergy: (date: string, energy: DailyLog['energy']) => Promise<void>;
   toggleSymptom: (date: string, symptom: string) => Promise<void>;
   setFlow: (date: string, flow: FlowLevel | undefined) => Promise<void>;
+  setSleep: (date: string, sleep: SleepLevel | undefined) => Promise<void>;
   setSessionLogged: (date: string, done: boolean) => Promise<void>;
   toggleNutrientCheck: (date: string, name: string) => Promise<void>;
   deleteAllData: () => Promise<void>;
@@ -151,6 +152,11 @@ export function CadenceProvider({ children }: { children: React.ReactNode }) {
     [persistLog]
   );
 
+  const setSleep = useCallback(
+    async (date: string, sleep: SleepLevel | undefined) => persistLog(date, { sleep }),
+    [persistLog]
+  );
+
   const toggleNutrientCheck = useCallback(
     async (date: string, name: string) => {
       const current = getLog(date);
@@ -185,12 +191,13 @@ export function CadenceProvider({ children }: { children: React.ReactNode }) {
       setEnergy,
       toggleSymptom,
       setFlow,
+      setSleep,
       setSessionLogged,
       toggleNutrientCheck,
       deleteAllData,
       exportData,
     }),
-    [ready, profile, logs, completeOnboarding, updateProfile, addPeriodStart, removePeriodStart, getLog, setEnergy, toggleSymptom, setFlow, setSessionLogged, toggleNutrientCheck, deleteAllData, exportData]
+    [ready, profile, logs, completeOnboarding, updateProfile, addPeriodStart, removePeriodStart, getLog, setEnergy, toggleSymptom, setFlow, setSleep, setSessionLogged, toggleNutrientCheck, deleteAllData, exportData]
   );
 
   return <CadenceContext.Provider value={value}>{children}</CadenceContext.Provider>;

@@ -43,6 +43,8 @@ export async function syncLog(log: DailyLog, consented: boolean): Promise<void> 
         energy: log.energy ?? null,
         symptoms: log.symptoms,
         flow: log.flow ?? null,
+        sleep: log.sleep ?? null,
+        nutrient_checks: log.nutrientChecks ?? [],
         session_logged: log.sessionLogged ?? null,
         logged_at: log.loggedAt ?? null,
         updated_at: new Date().toISOString(),

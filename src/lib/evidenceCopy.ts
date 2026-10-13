@@ -9,6 +9,7 @@ export function movementEvidenceLine(ev: PhaseEvidence | null): string | null {
   const parts: string[] = [];
   if (ev.avgEnergy != null) parts.push(`energy here has averaged ${ev.avgEnergy}/5`);
   if (ev.sessionsLogged) parts.push(`${ev.sessionsLogged} session${ev.sessionsLogged === 1 ? '' : 's'} logged`);
+  if (ev.commonSleep) parts.push(`sleep has most often logged as ${ev.commonSleep.bucket.toLowerCase()} here`);
   if (parts.length === 0) return null;
   return `Across ${ev.cyclesOfData} logged cycle${ev.cyclesOfData === 1 ? '' : 's'}, ${parts.join(' · ')}.`;
 }
@@ -19,6 +20,7 @@ export function fuelEvidenceLine(ev: PhaseEvidence | null): string | null {
   if (ev.topSymptom) {
     parts.push(`you've logged ${ev.topSymptom.name.toLowerCase()} in ${ev.topSymptom.cyclesWithIt} of your last ${ev.cyclesOfData} cycles here`);
   }
+  if (ev.commonSleep) parts.push(`sleep has most often logged as ${ev.commonSleep.bucket.toLowerCase()} here`);
   if (ev.avgEnergy != null && !ev.topSymptom) parts.push(`energy here has averaged ${ev.avgEnergy}/5`);
   if (parts.length === 0) return null;
   return `From your data: ${parts.join(' · ')}.`;

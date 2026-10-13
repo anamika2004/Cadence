@@ -243,3 +243,6 @@ export type Symptom = (typeof SYMPTOMS)[number];
 
 export const FLOW_LEVELS = ['Light', 'Medium', 'Heavy'] as const;
 export type FlowLevel = (typeof FLOW_LEVELS)[number];
+
+export const SLEEP_LEVELS = ['Under 4h', '4–6h', '6–8h', '8h+'] as const;
+export type SleepLevel = (typeof SLEEP_LEVELS)[number];

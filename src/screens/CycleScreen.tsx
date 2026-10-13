@@ -6,7 +6,7 @@ import { SymptomChips, SingleChips } from '../components/Chips';
 import { useCadence } from '../state/CadenceContext';
 import { useCycleData } from '../state/useCycleData';
 import { cycleDayFor, phaseKeyForDay } from '../lib/cycle';
-import { MOVE, FUEL, SYMPTOMS, FLOW_LEVELS } from '../lib/content';
+import { MOVE, FUEL, SYMPTOMS, FLOW_LEVELS, SLEEP_LEVELS } from '../lib/content';
 import { PHASES } from '../theme/tokens';
 import { color, font } from '../theme/tokens';
 import { daysInMonth, leadingBlanks, todayISO } from '../lib/date';
@@ -15,7 +15,7 @@ const WEEKDAY_INITIALS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const MONTH_NAMES_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 export function CycleScreen() {
-  const { profile, logs, getLog, setEnergy, toggleSymptom, setFlow } = useCadence();
+  const { profile, logs, getLog, setEnergy, toggleSymptom, setFlow, setSleep } = useCadence();
   const { cycleLength, boundaries, cyclesLogged, cycleLengthAvg, periodLengthAvg, energyAvg } = useCycleData();
   const today = todayISO();
   const now = new Date();
@@ -52,7 +52,12 @@ export function CycleScreen() {
   const canEdit = selected <= today;
   const editLog = getLog(selected);
   const loggedValue = selLog
-    ? [selLog.flow ? `Flow: ${selLog.flow.toLowerCase()}` : null, selLog.energy ? `Energy ${selLog.energy}/5` : null, selLog.symptoms.length ? selLog.symptoms.join(', ') : null]
+    ? [
+        selLog.flow ? `Flow: ${selLog.flow.toLowerCase()}` : null,
+        selLog.energy ? `Energy ${selLog.energy}/5` : null,
+        selLog.sleep ? `Sleep ${selLog.sleep}` : null,
+        selLog.symptoms.length ? selLog.symptoms.join(', ') : null,
+      ]
         .filter(Boolean)
         .join(' · ') || 'Logged, no details'
     : 'Nothing logged';
@@ -150,6 +155,14 @@ export function CycleScreen() {
                 options={FLOW_LEVELS}
                 value={editLog.flow}
                 onSelect={(v) => setFlow(selected, editLog.flow === v ? undefined : (v as any))}
+              />
+            </View>
+            <View style={[styles.logRow, { alignItems: 'flex-start' }]}>
+              <Text style={[styles.logLabel, { paddingTop: 5 }]}>Sleep</Text>
+              <SingleChips
+                options={SLEEP_LEVELS}
+                value={editLog.sleep}
+                onSelect={(v) => setSleep(selected, editLog.sleep === v ? undefined : (v as any))}
               />
             </View>
           </View>

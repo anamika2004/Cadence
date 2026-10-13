@@ -20,6 +20,14 @@ notes in `schema.sql`.
 3. **Run the schema.** Dashboard -> SQL Editor -> New query -> paste the
    entire contents of `schema.sql` -> Run.
 
+   Already ran this before `schema.sql` added `sleep` or `nutrient_checks`?
+   Run this once instead of starting over — it only adds what's missing,
+   existing rows are untouched:
+   ```sql
+   alter table public.daily_logs add column if not exists sleep text;
+   alter table public.daily_logs add column if not exists nutrient_checks jsonb not null default '[]'::jsonb;
+   ```
+
 4. **Add the credentials to the app.** In the project root, copy
    `.env.example` to `.env` and fill in the two values from step 1:
    ```

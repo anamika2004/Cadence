@@ -6,7 +6,7 @@ import { SymptomChips, SingleChips } from '../components/Chips';
 import { RingHeader } from '../components/RingHeader';
 import { useCadence } from '../state/CadenceContext';
 import { useCycleData } from '../state/useCycleData';
-import { MOVE, FUEL, SYMPTOMS, FLOW_LEVELS } from '../lib/content';
+import { MOVE, FUEL, SYMPTOMS, FLOW_LEVELS, SLEEP_LEVELS } from '../lib/content';
 import { movementEvidenceLine, fuelEvidenceLine } from '../lib/evidenceCopy';
 import { color, font, space } from '../theme/tokens';
 import { formatShort, formatTime } from '../lib/date';
@@ -14,7 +14,7 @@ import { TabId } from '../components/TabBar';
 
 export function TodayScreen({ onNavigate, onOpenSettings }: { onNavigate: (t: TabId) => void; onOpenSettings: () => void }) {
   const { today, day, cycleLength, boundaries, phaseKey, phase, phaseDayWithinPhase, prediction, pattern, phaseEvidence, cyclesLogged, todayLog } = useCycleData();
-  const { setEnergy, toggleSymptom, setFlow } = useCadence();
+  const { setEnergy, toggleSymptom, setFlow, setSleep } = useCadence();
 
   const move = MOVE[phaseKey];
   const fuel = FUEL[phaseKey];
@@ -108,6 +108,14 @@ export function TodayScreen({ onNavigate, onOpenSettings }: { onNavigate: (t: Ta
                 options={FLOW_LEVELS}
                 value={todayLog.flow}
                 onSelect={(v) => setFlow(today, todayLog.flow === v ? undefined : (v as any))}
+              />
+            </View>
+            <View style={[styles.logRow, { alignItems: 'flex-start' }]}>
+              <Text style={[styles.logLabel, { paddingTop: 5 }]}>Sleep</Text>
+              <SingleChips
+                options={SLEEP_LEVELS}
+                value={todayLog.sleep}
+                onSelect={(v) => setSleep(today, todayLog.sleep === v ? undefined : (v as any))}
               />
             </View>
           </View>

@@ -27,6 +27,8 @@ create table if not exists public.daily_logs (
   energy int,
   symptoms jsonb not null default '[]'::jsonb,
   flow text,
+  sleep text,
+  nutrient_checks jsonb not null default '[]'::jsonb,
   session_logged boolean,
   logged_at timestamptz,
   updated_at timestamptz not null default now(),

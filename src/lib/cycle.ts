@@ -5,13 +5,14 @@
 // See design_handoff_cadence/README.md, "State" section.
 import { PhaseKey, PHASE_ORDER } from '../theme/tokens';
 import { addDays, diffDays } from './date';
-import { FlowLevel } from './content';
+import { FlowLevel, SleepLevel } from './content';
 
 export type DailyLog = {
   date: string; // ISO yyyy-MM-dd
   energy?: 1 | 2 | 3 | 4 | 5;
   symptoms: string[];
   flow?: FlowLevel;
+  sleep?: SleepLevel;
   sessionLogged?: boolean;
   nutrientChecks?: string[]; // nutrient names checked off as "done" that day, on the Fuel screen
   loggedAt?: string; // ISO timestamp of the last edit, for the "Saved HH:MM" status line
@@ -209,6 +210,7 @@ export type PhaseEvidence = {
   cyclesOfData: number;
   avgEnergy?: number;
   topSymptom?: { name: string; cyclesWithIt: number };
+  commonSleep?: { bucket: string; cyclesWithIt: number };
   sessionsLogged?: number;
 };
 
@@ -261,7 +263,20 @@ export function computePhaseEvidence(phaseKey: PhaseKey, boundaries: PhaseBounda
     }
   }
 
+  const sleepCycleCounts = new Map<string, number>();
+  for (const cycleLogs of byCycle.values()) {
+    const seen = new Set<string>();
+    for (const log of cycleLogs) if (log.sleep) seen.add(log.sleep);
+    for (const bucket of seen) sleepCycleCounts.set(bucket, (sleepCycleCounts.get(bucket) ?? 0) + 1);
+  }
+  let commonSleep: { bucket: string; cyclesWithIt: number } | undefined;
+  for (const [bucket, count] of sleepCycleCounts) {
+    if (count >= MIN_CYCLES_FOR_PATTERN && (!commonSleep || count > commonSleep.cyclesWithIt)) {
+      commonSleep = { bucket, cyclesWithIt: count };
+    }
+  }
+
   const sessionsLogged = allLogs.filter((l) => l.sessionLogged).length;
 
-  return { cyclesOfData, avgEnergy, topSymptom, sessionsLogged };
+  return { cyclesOfData, avgEnergy, topSymptom, commonSleep, sessionsLogged };
 }
